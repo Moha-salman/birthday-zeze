@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Happy Birthday Zeze!</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            background-color: #f0f8ff;
+            animation: fadeIn 2s;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        .header {
+            margin-top: 50px;
+            font-size: 40px;
+            color: #ff1493;
+        }
+        .photo {
+            max-width: 100%;
+            height: auto;
+        }
+        .button {
+            background-color: #ffe135;
+            border: none;
+            color: black;
+            padding: 15px 32px;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+            margin: 4px 2px;
+            cursor: pointer;
+            border-radius: 12px;
+            font-size: 20px;
+            transition: transform 0.2s;
+        }
+        .button:hover {
+            transform: scale(1.1);
+        }
+    </style>
+</head>
+<body>
+    <div class="header">🎉 Happy Birthday Zeze! 🎉</div>
+    <img src="https://example.com/egypt-photo.jpg" alt="Egypt" class="photo">
+    <div>
+        <h2>Enjoy this special song for you!</h2>
+        <iframe src="https://open.spotify.com/embed/track/your_spotify_track_id" width="300" height="380" frameborder="0" allowtransparency="true" allow="encrypted-media"></iframe>
+    </div>
+    <div>
+        <button class="button" onclick="alert('Happy Birthday Zeze! 🎂')">Send Wishes</button>
+        <button class="button" onclick="window.location.href='https://example.com/party'">Join the Party!</button>
+    </div>
+</body>
+</html>
