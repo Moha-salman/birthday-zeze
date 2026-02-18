@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TypeScript Video Converter Example</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #764ba2;
+        }
+        button {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 10px 5px;
+        }
+        button:hover {
+            opacity: 0.9;
+        }
+        #status {
+            margin: 20px 0;
+            padding: 15px;
+            background: #f0f0f0;
+            border-radius: 5px;
+            min-height: 50px;
+        }
+        .progress {
+            margin: 10px 0;
+        }
+        code {
+            background: #f4f4f4;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: monospace;
+        }
+        pre {
+            background: #f4f4f4;
+            padding: 15px;
+            border-radius: 5px;
+            overflow-x: auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎬 TypeScript Video Converter Example</h1>
+        
+        <p>This example demonstrates how to use the TypeScript video converter library.</p>
+        
+        <div>
+            <input type="file" id="fileInput" accept="video/*">
+            <button onclick="convertVideo()">Convert Video</button>
+        </div>
+        
+        <div id="status">
+            <p>Select a video file and click "Convert Video" to start.</p>
+        </div>
+
+        <h2>Usage Example</h2>
+        <pre><code>// Import the library
+import { VideoConverter, FileHandler } from './dist/main.js';
+
+// Create converter
+const converter = new VideoConverter();
+
+// Set event listeners
+converter.setListeners({
+  onProgress: (progress) => {
+    console.log(`${progress.percentage}%: ${progress.message}`);
+  },
+  onComplete: (result) => {
+    // Download files
+    FileHandler.downloadAudio(...);
+    FileHandler.downloadTranscript(...);
+  }
+});
+
+// Convert video
+const config = VideoConverter.createDefaultConfig('webm');
+await converter.convert(videoFile, config);</code></pre>
+
+        <h2>Features</h2>
+        <ul>
+            <li>✅ Type-safe video to audio conversion</li>
+            <li>✅ Automatic transcript generation</li>
+            <li>✅ Progress tracking callbacks</li>
+            <li>✅ Clean modular architecture</li>
+            <li>✅ File download utilities</li>
+        </ul>
+
+        <h2>Browser Console</h2>
+        <p>Open the browser console (F12) to see detailed logs during conversion.</p>
+    </div>
+
+    <script type="module">
+        import { VideoConverter, FileHandler } from './dist/main.js';
+
+        // Make function available globally
+        window.convertVideo = async function() {
+            const fileInput = document.getElementById('fileInput');
+            const statusDiv = document.getElementById('status');
+            
+            if (!fileInput.files || !fileInput.files[0]) {
+                statusDiv.innerHTML = '<p style="color: red;">Please select a video file first!</p>';
+                return;
+            }
+
+            const videoFile = fileInput.files[0];
+            
+            // Create converter
+            const converter = new VideoConverter();
+            
+            // Set up event listeners
+            converter.setListeners({
+                onProgress: (progress) => {
+                    statusDiv.innerHTML = `
+                        <div class="progress">
+                            <strong>Status:</strong> ${progress.status}<br>
+                            <strong>Progress:</strong> ${progress.percentage}%<br>
+                            <strong>Message:</strong> ${progress.message}
+                        </div>
+                    `;
+                    console.log(`Progress: ${progress.percentage}% - ${progress.message}`);
+                },
+                onComplete: (result) => {
+                    console.log('Conversion complete!', result);
+                    
+                    const baseName = FileHandler.getBaseName(result.metadata.fileName);
+                    
+                    statusDiv.innerHTML = `
+                        <div style="color: green;">
+                            <h3>✅ Conversion Complete!</h3>
+                            <p><strong>File:</strong> ${result.metadata.fileName}</p>
+                            <p><strong>Duration:</strong> ${FileHandler.formatDuration(result.audio.duration)}</p>
+                            <p><strong>Processing Time:</strong> ${(result.processingTime / 1000).toFixed(2)}s</p>
+                            ${result.transcript ? `<p><strong>Transcript:</strong> ${result.transcript.success ? '✅ Generated' : '❌ Failed'}</p>` : ''}
+                            <button onclick="downloadResults()">Download Files</button>
+                        </div>
+                    `;
+                    
+                    // Store result for download
+                    window.conversionResult = result;
+                },
+                onError: (error) => {
+                    statusDiv.innerHTML = `<p style="color: red;">Error: ${error.message}</p>`;
+                    console.error('Conversion error:', error);
+                }
+            });
+
+            // Check transcript support
+            if (!converter.isTranscriptSupported()) {
+                statusDiv.innerHTML += '<p style="color: orange;">⚠️ Transcript generation not supported in this browser.</p>';
+            }
+
+            // Create config
+            const config = VideoConverter.createDefaultConfig('webm');
+            
+            try {
+                await converter.convert(videoFile, config);
+            } catch (error) {
+                console.error('Conversion failed:', error);
+            } finally {
+                converter.dispose();
+            }
+        };
+
+        window.downloadResults = function() {
+            const result = window.conversionResult;
+            if (!result) return;
+
+            const baseName = FileHandler.getBaseName(result.metadata.fileName);
+            
+            // Download audio
+            FileHandler.downloadAudio(
+                result.audio.audioBlob,
+                baseName,
+                result.audio.format
+            );
+            
+            // Download transcript if available
+            if (result.transcript && result.transcript.success) {
+                FileHandler.downloadTranscript(
+                    result.transcript.text,
+                    baseName
+                );
+            }
+        };
+
+        console.log('TypeScript Video Converter loaded!');
+        console.log('Select a video file and click "Convert Video" to start.');
+    </script>
+</body>
+</html>
