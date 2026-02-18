@@ -10,8 +10,8 @@ A birthday celebration website for Zeze with an integrated video to MP3 converte
 - Fireworks effects and personalized messages
 - Located at: `birthday-zeze_Version4.html` and `index.html`
 
-### 🎬 Video to MP3 Converter
-- Convert video files to MP3 audio format
+### 🎬 Video to Audio Converter
+- Convert video files to audio format (WebM)
 - Automatic speech-to-text transcription
 - Support for multiple video formats (MP4, WebM, MOV, AVI)
 - Download audio and transcript files

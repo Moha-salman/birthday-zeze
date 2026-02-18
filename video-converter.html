@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Video to MP3 Converter with Transcript</title>
+    <title>Video to Audio Converter with Transcript</title>
     <style>
         * {
             margin: 0;
@@ -213,8 +213,8 @@
 </head>
 <body>
     <div class="container">
-        <h1>🎬 Video to MP3 Converter</h1>
-        <p class="info-text">Convert your videos to MP3 audio files with automatic transcription</p>
+        <h1>🎬 Video to Audio Converter</h1>
+        <p class="info-text">Convert your videos to audio files with automatic transcription</p>
 
         <div class="upload-section" id="uploadSection">
             <p style="font-size: 1.2em; color: #666; margin-bottom: 20px;">
@@ -230,7 +230,7 @@
         <div class="file-list" id="fileList"></div>
 
         <button class="convert-btn" id="convertBtn" onclick="startConversion()" disabled>
-            🎵 Convert to MP3 & Generate Transcripts
+            🎵 Convert to Audio & Generate Transcripts
         </button>
 
         <div class="warning">
@@ -342,8 +342,9 @@
                 video.src = fileURL;
 
                 video.addEventListener('loadedmetadata', async () => {
+                    let audioContext = null;
                     try {
-                        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                        audioContext = new (window.AudioContext || window.webkitAudioContext)();
                         const source = audioContext.createMediaElementSource(video);
                         const destination = audioContext.createMediaStreamDestination();
                         source.connect(destination);
@@ -360,6 +361,10 @@
                         mediaRecorder.onstop = () => {
                             const audioBlob = new Blob(chunks, { type: 'audio/webm' });
                             URL.revokeObjectURL(fileURL);
+                            // Close AudioContext to prevent resource leaks
+                            if (audioContext) {
+                                audioContext.close();
+                            }
                             resolve(audioBlob);
                         };
 
@@ -371,6 +376,9 @@
                             source.disconnect();
                         };
                     } catch (error) {
+                        if (audioContext) {
+                            audioContext.close();
+                        }
                         reject(new Error('Failed to extract audio: ' + error.message));
                     }
                 });
@@ -397,10 +405,8 @@
                 recognition.lang = 'en-US';
 
                 let transcript = '';
-                const video = document.createElement('video');
                 const audio = document.createElement('audio');
                 const fileURL = URL.createObjectURL(videoFile);
-                video.src = fileURL;
                 audio.src = fileURL;
 
                 recognition.onresult = (event) => {
@@ -431,12 +437,13 @@
                 };
 
                 // Start recognition and play audio
-                video.addEventListener('loadedmetadata', () => {
+                audio.addEventListener('loadedmetadata', () => {
                     try {
                         recognition.start();
                         audio.play();
 
                         audio.onended = () => {
+                            // Allow 1 second buffer for final speech processing before stopping
                             setTimeout(() => {
                                 recognition.stop();
                             }, 1000);
@@ -446,7 +453,7 @@
                     }
                 });
 
-                video.addEventListener('error', () => {
+                audio.addEventListener('error', () => {
                     reject(new Error('Failed to load video for transcription'));
                 });
             });
@@ -460,31 +467,63 @@
             const baseName = fileName.replace(/\.[^/.]+$/, '');
             const audioURL = URL.createObjectURL(audioBlob);
 
-            resultItem.innerHTML = `
-                <h3 style="color: #764ba2; margin-bottom: 15px;">🎵 ${fileName}</h3>
-                
-                <audio class="audio-player" controls>
-                    <source src="${audioURL}" type="audio/webm">
-                    Your browser does not support the audio element.
-                </audio>
-
-                <div style="margin: 15px 0;">
-                    <button class="download-btn" onclick="downloadFile('${audioURL}', '${baseName}.webm', 'audio')">
-                        ⬇️ Download Audio
-                    </button>
-                    <button class="download-btn" onclick="downloadTranscript(\`${transcript.replace(/`/g, '\\`')}\`, '${baseName}')">
-                        📄 Download Transcript
-                    </button>
-                </div>
-
-                <details>
-                    <summary style="cursor: pointer; color: #667eea; font-weight: bold; margin: 10px 0;">
-                        📝 View Transcript
-                    </summary>
-                    <div class="transcript-box">${transcript || 'No transcript available'}</div>
-                </details>
-            `;
-
+            // Sanitize fileName for display
+            const safeFileName = document.createElement('div');
+            safeFileName.textContent = fileName;
+            
+            // Create elements safely without inline handlers
+            const h3 = document.createElement('h3');
+            h3.style.color = '#764ba2';
+            h3.style.marginBottom = '15px';
+            h3.textContent = '🎵 ' + fileName;
+            
+            const audio = document.createElement('audio');
+            audio.className = 'audio-player';
+            audio.controls = true;
+            const source = document.createElement('source');
+            source.src = audioURL;
+            source.type = 'audio/webm';
+            audio.appendChild(source);
+            
+            const buttonDiv = document.createElement('div');
+            buttonDiv.style.margin = '15px 0';
+            
+            const downloadAudioBtn = document.createElement('button');
+            downloadAudioBtn.className = 'download-btn';
+            downloadAudioBtn.textContent = '⬇️ Download Audio';
+            downloadAudioBtn.addEventListener('click', () => {
+                downloadFile(audioURL, baseName + '.webm', 'audio');
+            });
+            
+            const downloadTranscriptBtn = document.createElement('button');
+            downloadTranscriptBtn.className = 'download-btn';
+            downloadTranscriptBtn.textContent = '📄 Download Transcript';
+            downloadTranscriptBtn.addEventListener('click', () => {
+                downloadTranscript(transcript, baseName);
+            });
+            
+            buttonDiv.appendChild(downloadAudioBtn);
+            buttonDiv.appendChild(downloadTranscriptBtn);
+            
+            const details = document.createElement('details');
+            const summary = document.createElement('summary');
+            summary.style.cursor = 'pointer';
+            summary.style.color = '#667eea';
+            summary.style.fontWeight = 'bold';
+            summary.style.margin = '10px 0';
+            summary.textContent = '📝 View Transcript';
+            
+            const transcriptBox = document.createElement('div');
+            transcriptBox.className = 'transcript-box';
+            transcriptBox.textContent = transcript || 'No transcript available';
+            
+            details.appendChild(summary);
+            details.appendChild(transcriptBox);
+            
+            resultItem.appendChild(h3);
+            resultItem.appendChild(audio);
+            resultItem.appendChild(buttonDiv);
+            resultItem.appendChild(details);
             resultsContainer.appendChild(resultItem);
         }
 
@@ -501,6 +540,7 @@
             const blob = new Blob([transcript], { type: 'text/plain' });
             const url = URL.createObjectURL(blob);
             downloadFile(url, baseName + '_transcript.txt', 'text');
+            // Small delay to ensure download starts before revoking the URL
             setTimeout(() => URL.revokeObjectURL(url), 100);
         }
     </script>
