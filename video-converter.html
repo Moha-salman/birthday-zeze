@@ -1,0 +1,554 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Video to Audio Converter with Transcript</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            padding: 40px;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            max-width: 800px;
+            width: 100%;
+        }
+
+        h1 {
+            text-align: center;
+            color: #764ba2;
+            margin-bottom: 30px;
+            font-size: 2.5em;
+        }
+
+        .upload-section {
+            border: 3px dashed #667eea;
+            border-radius: 15px;
+            padding: 40px;
+            text-align: center;
+            margin-bottom: 30px;
+            transition: all 0.3s;
+        }
+
+        .upload-section:hover {
+            border-color: #764ba2;
+            background: rgba(102, 126, 234, 0.05);
+        }
+
+        .upload-section.dragover {
+            background: rgba(102, 126, 234, 0.1);
+            border-color: #764ba2;
+        }
+
+        input[type="file"] {
+            display: none;
+        }
+
+        .upload-btn {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            padding: 15px 30px;
+            border: none;
+            border-radius: 25px;
+            font-size: 1.1em;
+            cursor: pointer;
+            transition: transform 0.3s;
+            margin: 10px;
+        }
+
+        .upload-btn:hover {
+            transform: translateY(-3px);
+        }
+
+        .file-list {
+            margin: 20px 0;
+        }
+
+        .file-item {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 10px;
+            margin: 10px 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .file-name {
+            font-weight: bold;
+            color: #333;
+        }
+
+        .file-status {
+            font-size: 0.9em;
+            color: #666;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 25px;
+            background: #e0e0e0;
+            border-radius: 15px;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            width: 0%;
+            transition: width 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            font-size: 0.9em;
+        }
+
+        .convert-btn {
+            background: linear-gradient(135deg, #f093fb, #4facfe);
+            color: white;
+            padding: 15px 40px;
+            border: none;
+            border-radius: 25px;
+            font-size: 1.2em;
+            cursor: pointer;
+            width: 100%;
+            margin: 20px 0;
+            transition: transform 0.3s;
+        }
+
+        .convert-btn:hover:not(:disabled) {
+            transform: translateY(-3px);
+        }
+
+        .convert-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .results-section {
+            margin-top: 30px;
+            display: none;
+        }
+
+        .results-section.show {
+            display: block;
+        }
+
+        .result-item {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 15px 0;
+        }
+
+        .download-btn {
+            background: linear-gradient(135deg, #00f2fe, #4facfe);
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 20px;
+            cursor: pointer;
+            margin: 5px;
+            transition: transform 0.3s;
+        }
+
+        .download-btn:hover {
+            transform: translateY(-2px);
+        }
+
+        .transcript-box {
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 10px;
+            padding: 15px;
+            margin-top: 15px;
+            max-height: 300px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            font-family: monospace;
+            font-size: 0.9em;
+            line-height: 1.6;
+        }
+
+        .info-text {
+            color: #666;
+            font-size: 0.9em;
+            text-align: center;
+            margin: 10px 0;
+        }
+
+        .warning {
+            background: #fff3cd;
+            border: 1px solid #ffc107;
+            color: #856404;
+            padding: 15px;
+            border-radius: 10px;
+            margin: 20px 0;
+        }
+
+        .audio-player {
+            width: 100%;
+            margin: 15px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎬 Video to Audio Converter</h1>
+        <p class="info-text">Convert your videos to audio files with automatic transcription</p>
+
+        <div class="upload-section" id="uploadSection">
+            <p style="font-size: 1.2em; color: #666; margin-bottom: 20px;">
+                📁 Drag & Drop videos here or click to browse
+            </p>
+            <input type="file" id="fileInput" accept="video/*" multiple>
+            <button class="upload-btn" onclick="document.getElementById('fileInput').click()">
+                Choose Videos
+            </button>
+            <p class="info-text">Supported formats: MP4, WebM, MOV, AVI</p>
+        </div>
+
+        <div class="file-list" id="fileList"></div>
+
+        <button class="convert-btn" id="convertBtn" onclick="startConversion()" disabled>
+            🎵 Convert to Audio & Generate Transcripts
+        </button>
+
+        <div class="warning">
+            <strong>⚠️ Note:</strong> Transcription uses the Web Speech API which may not be available in all browsers 
+            or may have limitations. For best results, use Google Chrome. The accuracy of transcription depends on 
+            audio quality and may require an internet connection.
+        </div>
+
+        <div class="results-section" id="resultsSection">
+            <h2 style="color: #764ba2; margin-bottom: 20px;">📥 Conversion Results</h2>
+            <div id="resultsContainer"></div>
+        </div>
+
+        <div style="text-align: center; margin-top: 30px; padding-top: 20px; border-top: 2px solid #e0e0e0;">
+            <a href="index.html" style="color: #667eea; text-decoration: none; font-weight: bold; background: #f8f9fa; padding: 12px 24px; border-radius: 20px; display: inline-block; transition: all 0.3s;">
+                🏠 Back to Home
+            </a>
+        </div>
+    </div>
+
+    <script>
+        let selectedFiles = [];
+
+        // File input change handler
+        document.getElementById('fileInput').addEventListener('change', function(e) {
+            handleFiles(e.target.files);
+        });
+
+        // Drag and drop handlers
+        const uploadSection = document.getElementById('uploadSection');
+        
+        uploadSection.addEventListener('dragover', function(e) {
+            e.preventDefault();
+            uploadSection.classList.add('dragover');
+        });
+
+        uploadSection.addEventListener('dragleave', function(e) {
+            e.preventDefault();
+            uploadSection.classList.remove('dragover');
+        });
+
+        uploadSection.addEventListener('drop', function(e) {
+            e.preventDefault();
+            uploadSection.classList.remove('dragover');
+            handleFiles(e.dataTransfer.files);
+        });
+
+        function handleFiles(files) {
+            selectedFiles = Array.from(files).filter(file => file.type.startsWith('video/'));
+            displayFiles();
+            document.getElementById('convertBtn').disabled = selectedFiles.length === 0;
+        }
+
+        function displayFiles() {
+            const fileList = document.getElementById('fileList');
+            fileList.innerHTML = '';
+            
+            selectedFiles.forEach((file, index) => {
+                const fileItem = document.createElement('div');
+                fileItem.className = 'file-item';
+                fileItem.innerHTML = `
+                    <div>
+                        <div class="file-name">🎬 ${file.name}</div>
+                        <div class="file-status" id="status-${index}">Ready for conversion</div>
+                    </div>
+                    <div style="font-size: 0.9em; color: #666;">
+                        ${(file.size / (1024 * 1024)).toFixed(2)} MB
+                    </div>
+                `;
+                fileList.appendChild(fileItem);
+            });
+        }
+
+        async function startConversion() {
+            document.getElementById('convertBtn').disabled = true;
+            document.getElementById('resultsSection').classList.add('show');
+            const resultsContainer = document.getElementById('resultsContainer');
+            resultsContainer.innerHTML = '';
+
+            for (let i = 0; i < selectedFiles.length; i++) {
+                const file = selectedFiles[i];
+                const statusEl = document.getElementById(`status-${i}`);
+                
+                try {
+                    statusEl.textContent = '⏳ Converting to MP3...';
+                    statusEl.style.color = '#667eea';
+
+                    // Convert video to audio
+                    const audioBlob = await extractAudio(file);
+                    
+                    statusEl.textContent = '🎤 Generating transcript...';
+                    
+                    // Generate transcript
+                    const transcript = await generateTranscript(file);
+                    
+                    statusEl.textContent = '✅ Completed';
+                    statusEl.style.color = '#28a745';
+
+                    // Display results
+                    displayResult(file.name, audioBlob, transcript);
+                } catch (error) {
+                    console.error('Conversion error:', error);
+                    statusEl.textContent = '❌ Error: ' + error.message;
+                    statusEl.style.color = '#dc3545';
+                }
+            }
+
+            document.getElementById('convertBtn').textContent = '✅ Conversion Complete!';
+        }
+
+        async function extractAudio(videoFile) {
+            return new Promise((resolve, reject) => {
+                const video = document.createElement('video');
+                const fileURL = URL.createObjectURL(videoFile);
+                video.src = fileURL;
+
+                video.addEventListener('loadedmetadata', async () => {
+                    let audioContext = null;
+                    try {
+                        audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                        const source = audioContext.createMediaElementSource(video);
+                        const destination = audioContext.createMediaStreamDestination();
+                        source.connect(destination);
+
+                        const mediaRecorder = new MediaRecorder(destination.stream);
+                        const chunks = [];
+
+                        mediaRecorder.ondataavailable = (e) => {
+                            if (e.data.size > 0) {
+                                chunks.push(e.data);
+                            }
+                        };
+
+                        mediaRecorder.onstop = () => {
+                            const audioBlob = new Blob(chunks, { type: 'audio/webm' });
+                            URL.revokeObjectURL(fileURL);
+                            // Close AudioContext to prevent resource leaks
+                            if (audioContext) {
+                                audioContext.close();
+                            }
+                            resolve(audioBlob);
+                        };
+
+                        mediaRecorder.start();
+                        video.play();
+
+                        video.onended = () => {
+                            mediaRecorder.stop();
+                            source.disconnect();
+                        };
+                    } catch (error) {
+                        if (audioContext) {
+                            audioContext.close();
+                        }
+                        reject(new Error('Failed to extract audio: ' + error.message));
+                    }
+                });
+
+                video.addEventListener('error', () => {
+                    reject(new Error('Failed to load video file'));
+                });
+            });
+        }
+
+        async function generateTranscript(videoFile) {
+            return new Promise((resolve, reject) => {
+                // Check if browser supports Web Speech API
+                if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+                    resolve('⚠️ Speech recognition is not supported in this browser.\n\nTo generate transcripts, please use Google Chrome or another browser with Web Speech API support.\n\nAlternatively, you can use third-party transcription services with the downloaded audio file.');
+                    return;
+                }
+
+                const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+                const recognition = new SpeechRecognition();
+                
+                recognition.continuous = true;
+                recognition.interimResults = false;
+                recognition.lang = 'en-US';
+
+                let transcript = '';
+                const audio = document.createElement('audio');
+                const fileURL = URL.createObjectURL(videoFile);
+                audio.src = fileURL;
+
+                recognition.onresult = (event) => {
+                    for (let i = event.resultIndex; i < event.results.length; i++) {
+                        if (event.results[i].isFinal) {
+                            transcript += event.results[i][0].transcript + '\n';
+                        }
+                    }
+                };
+
+                recognition.onerror = (event) => {
+                    console.error('Speech recognition error:', event.error);
+                    URL.revokeObjectURL(fileURL);
+                    if (transcript) {
+                        resolve(transcript + '\n\n[Note: Transcription may be incomplete due to: ' + event.error + ']');
+                    } else {
+                        resolve('⚠️ Transcription failed: ' + event.error + '\n\nPlease ensure:\n- Your browser supports speech recognition\n- You have an internet connection\n- The video has clear audio\n\nYou can still use the downloaded audio file with other transcription services.');
+                    }
+                };
+
+                recognition.onend = () => {
+                    URL.revokeObjectURL(fileURL);
+                    if (!transcript) {
+                        resolve('⚠️ No speech detected in the video.\n\nPossible reasons:\n- The video has no audio\n- The audio quality is too low\n- The speech is in a different language\n\nYou can still use the downloaded audio file with other transcription services.');
+                    } else {
+                        resolve(transcript);
+                    }
+                };
+
+                // Start recognition and play audio
+                audio.addEventListener('loadedmetadata', () => {
+                    try {
+                        recognition.start();
+                        audio.play();
+
+                        audio.onended = () => {
+                            // Allow 1 second buffer for final speech processing before stopping
+                            setTimeout(() => {
+                                recognition.stop();
+                            }, 1000);
+                        };
+                    } catch (error) {
+                        reject(new Error('Failed to start transcription: ' + error.message));
+                    }
+                });
+
+                audio.addEventListener('error', () => {
+                    reject(new Error('Failed to load video for transcription'));
+                });
+            });
+        }
+
+        function displayResult(fileName, audioBlob, transcript) {
+            const resultsContainer = document.getElementById('resultsContainer');
+            const resultItem = document.createElement('div');
+            resultItem.className = 'result-item';
+
+            const baseName = fileName.replace(/\.[^/.]+$/, '');
+            const audioURL = URL.createObjectURL(audioBlob);
+
+            // Sanitize fileName for display
+            const safeFileName = document.createElement('div');
+            safeFileName.textContent = fileName;
+            
+            // Create elements safely without inline handlers
+            const h3 = document.createElement('h3');
+            h3.style.color = '#764ba2';
+            h3.style.marginBottom = '15px';
+            h3.textContent = '🎵 ' + fileName;
+            
+            const audio = document.createElement('audio');
+            audio.className = 'audio-player';
+            audio.controls = true;
+            const source = document.createElement('source');
+            source.src = audioURL;
+            source.type = 'audio/webm';
+            audio.appendChild(source);
+            
+            const buttonDiv = document.createElement('div');
+            buttonDiv.style.margin = '15px 0';
+            
+            const downloadAudioBtn = document.createElement('button');
+            downloadAudioBtn.className = 'download-btn';
+            downloadAudioBtn.textContent = '⬇️ Download Audio';
+            downloadAudioBtn.addEventListener('click', () => {
+                downloadFile(audioURL, baseName + '.webm', 'audio');
+            });
+            
+            const downloadTranscriptBtn = document.createElement('button');
+            downloadTranscriptBtn.className = 'download-btn';
+            downloadTranscriptBtn.textContent = '📄 Download Transcript';
+            downloadTranscriptBtn.addEventListener('click', () => {
+                downloadTranscript(transcript, baseName);
+            });
+            
+            buttonDiv.appendChild(downloadAudioBtn);
+            buttonDiv.appendChild(downloadTranscriptBtn);
+            
+            const details = document.createElement('details');
+            const summary = document.createElement('summary');
+            summary.style.cursor = 'pointer';
+            summary.style.color = '#667eea';
+            summary.style.fontWeight = 'bold';
+            summary.style.margin = '10px 0';
+            summary.textContent = '📝 View Transcript';
+            
+            const transcriptBox = document.createElement('div');
+            transcriptBox.className = 'transcript-box';
+            transcriptBox.textContent = transcript || 'No transcript available';
+            
+            details.appendChild(summary);
+            details.appendChild(transcriptBox);
+            
+            resultItem.appendChild(h3);
+            resultItem.appendChild(audio);
+            resultItem.appendChild(buttonDiv);
+            resultItem.appendChild(details);
+            resultsContainer.appendChild(resultItem);
+        }
+
+        function downloadFile(url, filename, type) {
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+        }
+
+        function downloadTranscript(transcript, baseName) {
+            const blob = new Blob([transcript], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            downloadFile(url, baseName + '_transcript.txt', 'text');
+            // Small delay to ensure download starts before revoking the URL
+            setTimeout(() => URL.revokeObjectURL(url), 100);
+        }
+    </script>
+</body>
+</html>
